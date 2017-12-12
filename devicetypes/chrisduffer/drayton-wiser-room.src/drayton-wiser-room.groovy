@@ -230,11 +230,10 @@ def updated() {
         port = 80
     }
 
-    def dni = createDNI(settings.confIpAddr, port, settings.confRoom)
-    log.debug "dni ${dni}"
+    def dni = createDNI(settings.confIpAddr, port)
     device.deviceNetworkId = dni
     state.dni = dni;
-    state.hostAddress = "${settings.confIpAddr}:${settings.confTcpPort}"
+    state.hostAddress = "${settings.confIpAddr}:${settings.confTcpPort}:${settings.confRoom}"
     state.requestTime = 0
     state.responseTime = 0
 
@@ -243,7 +242,7 @@ def updated() {
 }
 
 def pollingTask() {
-    log.debug "pollingTask()"
+    //log.debug "pollingTask()"
 
     state.lastPoll = now()
 
@@ -655,7 +654,6 @@ private apiGet(String path) {
     log.debug "apiGet(${path})"
 
     if (!updateDNI()) {
-    	log.warn "!updateDNI"
         return null
     }
 
@@ -663,7 +661,6 @@ private apiGet(String path) {
 
     def headers = [
         HOST:       state.hostAddress,
-        //HOST:       "192.168.1.224:80:3",
         Accept:     "*/*",
         Secret:		settings.confSecret
     ]
@@ -673,7 +670,6 @@ private apiGet(String path) {
         path:       path,
         headers:    headers
     ]
-    log.debug("${httpRequest}")
 
     return new physicalgraph.device.HubAction(httpRequest)
 }
@@ -682,7 +678,6 @@ private apiPost(String path, data) {
     //log.debug "apiPost(${path}, ${data})"
 
     if (!updateDNI()) {
-    	log.warn "!updateDNI"
         return null
     }
 
@@ -890,23 +885,19 @@ private def temperatureFtoC(Double tempF) {
     return t.round(1)
 }
 
-private String createDNI(ipaddr, port, room) {
-    log.debug "createDNI(${ipaddr}, ${port}, ${room})"
+private String createDNI(ipaddr, port) {
+    //log.debug "createDNI(${ipaddr}, ${port})"
 
     def hexIp = ipaddr.tokenize('.').collect {
         String.format('%02X', it.toInteger())
     }.join()
 
-    def hexPort = String.format('%04X', port.toInteger() + room.toInteger())
-    
-    def hexRoom = String.format('%04X', room.toInteger())
+    def hexPort = String.format('%04X', port.toInteger())
  
     return "${hexIp}:${hexPort}"
 }
 
 private updateDNI() {
-	log.debug "updateDNI"
-
     if (!state.dni) {
 	    log.warn "DNI is not set! Please enter device IP address and port in settings."
         return false
@@ -914,8 +905,6 @@ private updateDNI() {
  
     if (state.dni != device.deviceNetworkId) {
 	    log.warn "Invalid DNI: ${device.deviceNetworkId}!"
-        log.debug "state.dni ${state.dni}"
-        log.debug "device.deviceNetworkId ${device.deviceNetworkId}"
         device.deviceNetworkId = state.dni
     }
 
