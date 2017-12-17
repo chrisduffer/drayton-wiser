@@ -29,8 +29,10 @@
 import groovy.json.JsonSlurper
 
 preferences {
-    input("confIpAddr", "string", title:"Thermostat IP Address",
-        required:true, displayDuringSetup:true)
+/*
+   
+   input("confIpAddr", "string", title:"Thermostat IP Address",
+        required:false, displayDuringSetup:true)
 
     // FIXME: Android client does not accept "defaultValue" attribute!
     //input("confTcpPort", "number", title:"Thermostat TCP Port",
@@ -38,16 +40,17 @@ preferences {
     //input("pollingInterval", "number", title:"Polling interval in minutes (1 - 59)",
     //    defaultValue:5, required:true, displayDuringSetup:true)
     input("confTcpPort", "number", title:"Thermostat TCP Port (default: 80)",
-        required:true, displayDuringSetup:true)
+        required:false, displayDuringSetup:true)
         
     input("confSecret", "string", title:"Thermostat Secret",
-        required:true, displayDuringSetup:true)
-        
+        required:false, displayDuringSetup:true)
+        */
+       
     input("confRoom", "number", title:"Room ID",
         required:true, displayDuringSetup:true)
 
     input("pollingInterval", "number", title:"Polling interval in minutes (1 - 59)",
-        required:true, displayDuringSetup:true)
+        required:true, displayDuringSetup:true,  defaultValue:1)
 }
 
 metadata {
@@ -200,10 +203,17 @@ def installed() {
 }
 
 def updated() {
-	//log.debug "updated with settings: ${settings}"
+	log.debug "updated with settings: ${settings}"
 
     printTitle()
     unschedule()
+    
+    
+    /*
+    if (!settings.confRoom) {
+	    log.warn "Room is not set!"
+        return
+    }
 
     if (device.currentValue('connection') == null) {
         sendEvent([name:'connection', value:'disconnected', displayed:false])
@@ -219,21 +229,21 @@ def updated() {
         return
     }
     
-    if (!settings.confRoom) {
-	    log.warn "Room is not set!"
-        return
-    }
-
+    
     def port = settings.confTcpPort
     if (!port) {
 	    log.warn "Using default TCP port 80!"
         port = 80
     }
+    */
 
-    def dni = createDNI(settings.confIpAddr, port)
+	    
+    /*    
+    def dni = createDNI(settings.confIpAddr, settings.confRoom)
     device.deviceNetworkId = dni
     state.dni = dni;
     state.hostAddress = "${settings.confIpAddr}:${settings.confTcpPort}:${settings.confRoom}"
+    */
     state.requestTime = 0
     state.responseTime = 0
 
@@ -242,7 +252,11 @@ def updated() {
 }
 
 def pollingTask() {
-    //log.debug "pollingTask()"
+    log.debug "pollingTask()"
+    
+    parent.childPollingTask(device.deviceNetworkId)
+    
+    /*
 
     state.lastPoll = now()
 
@@ -261,12 +275,14 @@ def pollingTask() {
 
     def updated = state.updated ?: 0
     if ((now() - updated) > 10000) {
-        sendHubCommand(apiGet("/data/domain/Room/${settings.confRoom}"))
+        //parent.sendHubCommand(apiGet("/data/domain/Room/0"))
+        parent.childPollingTask(device.deviceNetworkId)
     }
+    */
 }
 
 def parse(String message) {
-    //log.debug "parse(${message})"
+    log.debug "parse(${message})"
 
     def msg = stringToMap(message)
     if (msg.headers) {
@@ -597,8 +613,13 @@ def poll() {
 
 // refresh.refresh
 def refresh() {
-    //log.debug "refresh()"
+    log.debug "refresh()"
+    log.debug "parent.childRefresh(${device.deviceNetworkId})"
+    parent.childRefresh(device.deviceNetworkId)
+    return null
     //STATE()
+    
+    /*
 
     if (!state.dni) {
 	    log.warn "DNI is not set! Please enter device IP address and port in settings."
@@ -611,16 +632,24 @@ def refresh() {
 
         return null
     }
-
+    
+    */
+	log.debug("interval")
     def interval = getPollingInterval() * 60
-    def elapsed =  (now() - state.lastPoll) / 1000
+    
+    log.debug("elapsed")
+    def elapsed =  (now() - state.lastPoll.toInteger()) / 1000
+    
+    log.debug("if elapsed")
     if (elapsed > (interval + 300)) {
         log.warn "Restarting polling task..."
         unschedule()
         startPollingTask()
     }
+    log.debug("send apiget")
 
-    return apiGet("/data/domain/Room/${settings.confRoom}")
+	parent.childRefresh(device.deviceNetworkId)
+    //return apiGet("/data/domain/Room/0")
 }
 
 private getPollingInterval() {
@@ -650,17 +679,19 @@ private startPollingTask() {
     schedule(sched, pollingTask)
 }
 
-private apiGet(String path) {
-    log.debug "apiGet(${path})"
 
+private apiGet(String path) {
+    log.debug "apiGet(${path}) parent ip ${parent.ipAddress}"
+	
+    /*
     if (!updateDNI()) {
         return null
-    }
+    }*/
 
     state.requestTime = now()
 
     def headers = [
-        HOST:       state.hostAddress,
+        HOST:       parent.ipAddress,
         Accept:     "*/*",
         Secret:		settings.confSecret
     ]
@@ -673,6 +704,7 @@ private apiGet(String path) {
 
     return new physicalgraph.device.HubAction(httpRequest)
 }
+
 
 private apiPost(String path, data) {
     //log.debug "apiPost(${path}, ${data})"
@@ -730,7 +762,8 @@ private parseHttpHeaders(String headers) {
     return result
 }
 
-private def parseTstatData(Map tstat) {
+public def parseTstatData(Map tstat) {
+	log.trace "tstat"
     log.trace "tstat data: ${tstat}"
 
     state.responseTime = now()
@@ -815,9 +848,12 @@ private def parseTstatData(Map tstat) {
 
     state.updated = now()
 
-    //log.debug "events: ${events}"
-    return events
-}
+    log.debug "events: ${events}"
+    events.each { event ->
+        log.debug "event ${event}"
+        sendEvent(event)
+    }
+    }
 
 private def parseThermostatState(val) {
 	log.debug "parseThermostatState ${val}"
