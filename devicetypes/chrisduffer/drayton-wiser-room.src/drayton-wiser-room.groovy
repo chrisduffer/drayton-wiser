@@ -1,29 +1,7 @@
 /**
- *  Filtrete 3M-50 WiFi Thermostat.
+ *  Drayton Wiser WiFi Thermostat.
  *
- *  For more information, please visit:
- *  <https://github.com/statusbits/smartthings/tree/master/RadioThermostat/>
- *
- *  --------------------------------------------------------------------------
- *
- *  Copyright © 2014 Statusbits.com
- *
- *  This program is free software: you can redistribute it and/or modify it
- *  under the terms of the GNU General Public License as published by the Free
- *  Software Foundation, either version 3 of the License, or (at your option)
- *  any later version.
- *
- *  This program is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU General Public License along
- *  with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  --------------------------------------------------------------------------
- *
- *  Version 2.0.1 (12/20/2016)
+ *  Based heavily on https://github.com/statusbits/smartthings/blob/master/devicetypes/statusbits/radio-thermostat.src/radio-thermostat.groovy
  */
 
 import groovy.json.JsonSlurper
@@ -62,7 +40,17 @@ metadata {
         capability "Polling"
 
         // Custom attributes
-        attribute "connection", "string"    // Connection status string
+        
+        // Connection status string TODO is this needed?
+        attribute "connection", "string"
+        // %age demand
+        attribute "demand", "number"        
+        // Name from json
+        attribute "name", "string"
+        // output state
+        attribute "outputState", "string"
+        // overide
+        attribute "overrideType", "string"
 
         // Custom commands
         command "temperatureUp"
@@ -110,7 +98,7 @@ metadata {
 			}
             
 			tileAttribute("device.heatingSetpoint", key:"HEATING_SETPOINT") {
-				attributeState("heatingSetpoint", label:'set ${currentValue}', unit:"dC", defaultState:true)
+				attributeState("heatingSetpoint", label:"${ currentValue}", unit:"dC", defaultState:true)
 			}
         }
         
@@ -118,10 +106,19 @@ metadata {
             state "off", label:'Hold1', icon:"st.Weather.weather2", backgroundColor:"#FFFFFF", action:"holdOn", defaultState:true
             state "on", label:'Hold2', icon:"st.Weather.weather2", backgroundColor:"#A4FCA6", action:"holdOff"
         }
+        
+        valueTile("demand", "device.demand", width:2, height:2) {
+            state "demand", label: '${currentValue}% demand'
+        }
 
-        standardTile("modeHeat", "device.thermostatMode", width:2, height:2) {
-            state "default", label:'', icon:"st.thermostat.heat", backgroundColor:"#FFFFFF", action:"thermostat.heat", defaultState:true
-            state "heat", label:'', icon:"st.thermostat.heat", backgroundColor:"#FFCC99", action:"thermostat.off"
+        standardTile("outputState", "device.outputState", width:2, height:2) {
+            state "default", label:'OutputState: ${currentValue}', icon:"st.thermostat.heating-cooling-off", backgroundColor:"#FFFFFF", defaultState:true
+            state "On", label:'OutputState: ${currentValue}', icon:"st.thermostat.heat", backgroundColor:"#FFCC99"
+        }
+        
+        standardTile("overrideType", "device.overrideType", width:2, height:2) {
+            state "default", label:'OverrideType: ${currentValue}', backgroundColor:"#FFFFFF", defaultState:true
+            state "Manual", label:'OverrideType: ${currentValue}', backgroundColor:"#99FF99"
         }
 
         standardTile("modeAuto", "device.thermostatMode", width:2, height:2) {
@@ -137,7 +134,7 @@ metadata {
         }
 
         valueTile("temperature", "device.temperature", width:2, height:2) {
-            state "temperature", label:'${currentValue}°', unit:"dF",
+            state "temperature", label:'${currentValue}°', unit:"dC",
                 backgroundColors:[
                     [value:-12, color:"#153591"],
                     [value:-9, color:"#1e9cbb"],
@@ -159,8 +156,8 @@ metadata {
         main("temperature")
         details([
             "thermostat",
-            "modeHeat", "modeCool", "modeAuto",
-            "fanMode", "hold", "refresh"
+            "outputState", "modeAuto", "overrideType",
+            "fanMode",  "demand", "refresh"
         ])
     }
 
@@ -832,7 +829,30 @@ public def parseTstatData(Map tstat) {
         ])
     }
 
-    if (tstat.containsKey("hold")) {
+    if (tstat.containsKey("PercentageDemand")) {
+        events << createEvent([
+            name:   "demand",
+            value:  parseThermostatDemand(tstat.PercentageDemand)
+        ])
+    }
+    
+    if (tstat.containsKey("ControlOutputState")) {
+        events << createEvent([
+            name:   "outputState",
+            value:  parseThermostatControlOutputState(tstat.ControlOutputState)
+        ])
+    }
+    
+    if (tstat.containsKey("OverrideType")) {
+        events << createEvent([
+            name:   "overrideType",
+            value:  parseThermostatOverrideType(tstat.OverrideType)
+        ])
+    }
+    
+    
+    
+     if (tstat.containsKey("hold")) {
         events << createEvent([
             name:   "hold",
             value:  parseThermostatHold(tstat.hold)
@@ -901,9 +921,29 @@ private def parseThermostatHold(val) {
     return values[val.toInteger()]
 }
 
+private def parseThermostatDemand(val) {
+    return val
+}
+
+private def parseThermostatControlOutputState(val) {
+	return val
+}
+
+private def parseThermostatOverrideType(val) {
+	return val
+}
+
 private def scaleTemperature(Double temp) {
 	log.debug "scaleTemperature: ${temp}"
     temp = temp / 10
+    
+    /*
+    if (temp < -19 ) {
+    	log.debug "setting off"
+    	return 'off'
+        }
+        */
+        
     if (getTemperatureScale() == "F") {
         return temperatureCtoF(temp)
     }
@@ -952,11 +992,11 @@ private def printTitle() {
 }
 
 private def textVersion() {
-    return "Version 2.0.1 (12/20/2016)"
+    return "Version 0.1"
 }
 
 private def textCopyright() {
-    return "Copyright © 2014 Statusbits.com"
+    return "Copyright © 2018 Chrisduffer"
 }
 
 private def STATE() {
