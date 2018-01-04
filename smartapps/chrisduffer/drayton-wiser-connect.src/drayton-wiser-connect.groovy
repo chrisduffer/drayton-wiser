@@ -35,9 +35,10 @@ preferences {
 def firstPage() {
 	return dynamicPage(name: "firstPage", title: "", install: true, uninstall: true) {
         section("Title") {
-            input("ipAddress", "string", title: "Hub IP address", description: "Your Drayton Wiser IP Address)", required: true, defaultValue: "192.168.1.224")
+            input("ipAddress", "string", title: "Hub IP address", description: "Your Drayton Wiser IP Address e.g. (192.168.1.224)", required: true)
             input("secret", "string", title: "Hub Secret", required: true)
-            input("maxRooms", "number", title: "Maximum Rooms to add", required: true, defaultValue: "4")
+            input("maxRooms", "number", title: "Rooms to add (e.g. 4)", required: true)
+            input("boostMins", "number", title: "Boost minutes (e.g. 30)", required: true)
         }
     }
 }
@@ -70,6 +71,29 @@ def apiGET(path) {
     	log.debug("apiGET error ${e}" )
     }
 }
+
+
+private apiPatch(path, data) {
+    try {
+        def url = "${path}"
+        log.debug "apiPatch (${path}, ${data})"
+
+        def httpRequest = [
+            method: "PATCH",
+            path: "${path}",
+            headers: apiRequestHeaders(),
+            body: data
+        ] 
+        
+        return httpRequest
+
+    	//return new physicalgraph.device.HubAction(httpRequest)
+    }
+    catch (Exception e) {
+    	log.debug("apiPatch error ${e}" )
+    }
+}
+
 
 def installed() {
 	log.debug "Installed with settings: ${settings}"
@@ -157,6 +181,76 @@ def childRefresh(deviceId){
    
 }
 
+
+def childCancelOverride(deviceId){
+	log.info("childCancelOverride ${deviceId}")
+    
+    def data = [RequestOverride:[Type:"None",Originator:"App",DurationMinutes:0,SetPoint:0]]
+    
+    def childDevice = getChildDevice(deviceId)
+    def idString = ("${deviceId}").split(':')
+    //log.info("${idString}")
+    log.info("idString ${idString[0]}  ${idString[1]}")
+    
+    def ip = "${ipAddress}:80"
+	def deviceNetworkId = createDNI(ipAddress,80)
+    
+    def headers = [:] 
+    headers.put("HOST", "${ipAddress}:80")
+    headers.put("Secret", "${secret}")
+    
+    log.debug ("headers ${headers}")
+    
+    def pathUrl = "/data/domain/Room/${idString[1]}"
+    
+    def setDirection = new physicalgraph.device.HubAction(
+        method: "PATCH",
+        path: pathUrl,
+        headers: headers,
+        body: data
+        )
+
+	log.debug "sending childCancelOverride cmd"
+    
+    log.debug " ${setDirection}"
+    sendHubCommand(setDirection) 
+}
+
+def childSetOverride(deviceId, temp){
+	log.info("childSetOverride ${deviceId}  ${temp}")
+    
+    def data = [RequestOverride:[Type:"Manual",SetPoint:temp]]
+    
+    def childDevice = getChildDevice(deviceId)
+    def idString = ("${deviceId}").split(':')
+    //log.info("${idString}")
+    log.info("idString ${idString[0]}  ${idString[1]}")
+    
+    def ip = "${ipAddress}:80"
+	def deviceNetworkId = createDNI(ipAddress,80)
+    
+    def headers = [:] 
+    headers.put("HOST", "${ipAddress}:80")
+    headers.put("Secret", "${secret}")
+    
+    log.debug ("headers ${headers}")
+    
+    def pathUrl = "/data/domain/Room/${idString[1]}"
+    
+    def setDirection = new physicalgraph.device.HubAction(
+        method: "PATCH",
+        path: pathUrl,
+        headers: headers,
+        body: data
+        )
+
+	log.debug "sending childSetOverride cmd"
+    
+    log.debug " ${setDirection}"
+    sendHubCommand(setDirection) 
+
+}
+
 void calledBackHandler(physicalgraph.device.HubResponse hubResponse) {
     log.debug "Entered calledBackHandler()..."
 }
@@ -205,7 +299,7 @@ private String createDNI(ipaddr, port) {
 def response(evt){
 	log.debug "response"
     def msg = parseLanMessage(evt.description)
-     log.debug "msg body ${msg.body}"
+     log.debug "response(evt) msg body ${msg.body}"
      
       if(msg && msg.body){
       	if(msg.json) {
