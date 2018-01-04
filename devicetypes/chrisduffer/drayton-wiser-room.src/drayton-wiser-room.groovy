@@ -55,6 +55,7 @@ metadata {
         // Custom commands
         command "temperatureUp"
         command "temperatureDown"
+        command "cancelOverride"
     }
 
     tiles(scale:2) {
@@ -118,7 +119,7 @@ metadata {
         
         standardTile("overrideType", "device.overrideType", width:2, height:2) {
             state "default", label:'OverrideType: ${currentValue}', backgroundColor:"#FFFFFF", defaultState:true
-            state "Manual", label:'OverrideType: ${currentValue}', backgroundColor:"#99FF99"
+            state "Manual", label:'OverrideType: ${currentValue}', backgroundColor:"#99FF99", action:"cancelOverride"
         }
 
         standardTile("modeAuto", "device.thermostatMode", width:2, height:2) {
@@ -454,22 +455,21 @@ def fanOn() {
 // thermostat.setHeatingSetpoint
 def setHeatingSetpoint(temp) {
     log.debug "TODO setHeatingSetpoint(${temp})"
-/*
-    double minT = 36.0
-    double maxT = 94.0
-    def scale = getTemperatureScale()
-    double t = (scale == "C") ? temperatureCtoF(temp) : temp
 
-    t = t.round()
+    double minT = 5.0
+    double maxT = 30.0
+    def scale = getTemperatureScale()
+    double t = (scale == "F") ? temperatureFtoC(temp) : temp
+
     if (t < minT) {
-        log.warn "Cannot set heating target below ${minT} °F."
+        log.warn "Cannot set heating target below ${minT} °C."
         return null
     } else if (t > maxT) {
-        log.warn "Cannot set heating target above ${maxT} °F."
+        log.warn "Cannot set heating target above ${maxT} °C."
         return null
     }
 
-    log.info "Setting heating setpoint to ${t} °F"
+    log.info "Setting heating setpoint to ${t} °C"
 
     def ev = [
         name:   "heatingSetpoint",
@@ -478,9 +478,11 @@ def setHeatingSetpoint(temp) {
     ]
 
     sendEvent(ev)
+    
+    setOverride(t)
+    return null
 
-    return writeTstatValue('it_heat', t)
-    */
+    //return writeTstatValue('it_heat', t)
 }
 
 // thermostat.setCoolingSetpoint
@@ -518,10 +520,19 @@ def setCoolingSetpoint(temp) {
 
 // Custom command
 def temperatureUp() {
-    log.debug "TODO temperatureUp()"
+    log.debug "temperatureUp()"
 
-	/*
     def step = (getTemperatureScale() == "C") ? 0.5 : 1
+    def currentTemp = device.currentValue("heatingSetpoint")?.toFloat()
+    log.debug "currentTemp ${currentTemp}"
+    
+    // off is -20 so set to 19 on up
+    def setPoint = (currentTemp < -19) ? 19 : currentTemp + step
+    log.debug "setPoint ${setPoint}"
+    
+    return setHeatingSetpoint(setPoint)
+    
+    /*
     def mode = device.currentValue("thermostatMode")
     if (mode == "heat") {
         def t = device.currentValue("heatingSetpoint")?.toFloat()
@@ -547,31 +558,16 @@ def temperatureUp() {
 // Custom command
 def temperatureDown() {
     log.debug "TODO temperatureDown()"
-
-/*
+    
     def step = (getTemperatureScale() == "C") ? 0.5 : 1
-    def mode = device.currentValue("thermostatMode")
-    if (mode == "heat") {
-        def t = device.currentValue("heatingSetpoint")?.toFloat()
-        if (!t) {
-            log.error "Cannot get current heating setpoint."
-            return null
-        }
- 
-        return setHeatingSetpoint(t - step)
-    } else if (mode == "cool") {
-        def t = device.currentValue("coolingSetpoint")?.toFloat()
-        if (!t) {
-            log.error "Cannot get current cooling setpoint."
-            return null
-        }
- 
-        return setCoolingSetpoint(t - step)
-    } else {
-        log.warn "Cannot change temperature while in '${mode}' mode."
-        return null
-    }
-    */
+    def currentTemp = device.currentValue("heatingSetpoint")?.toFloat()
+    log.debug "currentTemp ${currentTemp}"
+    
+    def setPoint = currentTemp - step
+    log.debug "setPoint ${setPoint}"
+    
+    return setHeatingSetpoint(setPoint)
+
 }
 
 // Custom command
@@ -601,6 +597,19 @@ def holdOff() {
 
     return writeTstatValue("hold", 0)
 }
+
+def cancelOverride() {
+	log.debug "cancelOverride()"
+    log.debug "parent.childCancelOverride(${device.deviceNetworkId}"
+    parent.childCancelOverride(device.deviceNetworkId)
+}
+
+def setOverride(temp){
+	log.debug "setOverride()"
+    log.debug "parent.childSetOverride(${device.deviceNetworkId} ${temp}"
+    parent.childSetOverride(device.deviceNetworkId, (temp * 10).round())
+}
+
 
 // polling.poll 
 def poll() {
@@ -847,6 +856,12 @@ public def parseTstatData(Map tstat) {
         events << createEvent([
             name:   "overrideType",
             value:  parseThermostatOverrideType(tstat.OverrideType)
+        ])
+    }
+    else {
+    	events << createEvent([
+            name:   "overrideType",
+            value:  ""
         ])
     }
     
