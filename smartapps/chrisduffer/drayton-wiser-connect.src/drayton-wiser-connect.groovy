@@ -156,6 +156,20 @@ def getHeaders() {
     return headers
 }
 
+def systemRefresh() {
+	log.info("systemRefresh")
+    
+    def refreshRequest = new physicalgraph.device.HubAction(
+        method: "GET",
+        path: "/data/domain/System/",
+        headers: getHeaders()
+        )
+
+	log.debug " ${refreshRequest}"
+	log.debug "sending systemRefresh"
+    sendHubCommand(refreshRequest)
+}
+
 def childPollingTask(deviceId){
 	log.info("childPollingTask ${deviceId}")
     childRefresh(deviceId)
@@ -281,19 +295,38 @@ def response(evt){
       	if(msg.json) {
         	log.debug("is json")
             
-             log.debug "childId..."
-            //get child device
-            def childId = "${app.id}:${msg.json.id}" 
+            // Room data
+            if(msg.json.containsKey("id")){
+                 log.debug "childId..."
+                //get child device
+                def childId = "${app.id}:${msg.json.id}" 
+
+                log.debug "childId ${childId}"
+
+                def childDevice = getChildDevice("${childId}")
+                childDevice.parseTstatData(msg.json)
+            }
             
-            log.debug "childId ${childId}"
-            
-            def childDevice = getChildDevice("${childId}")
-            childDevice.parseTstatData(msg.json)
-            
+            if(msg.json.containsKey("BoilerSettings")){
+                log.debug "System data..."
+                 
+                def type = "Home"
+                if(msg.json.containsKey("OverrideType")){
+					type = msg.json.OverrideType
+                }
+                
+                log.debug "OverrideType: ${type}"
+                
+                // update all child devices
+                def childDevs = getChildDevices()
+                childDevs.each {
+                    log.debug "child: ${it.label}"
+                    it.parseSystemData(msg.json)
+                }
+            }
             
         }
-      
-      }
+        }
 }
 //parseTstatData
 
