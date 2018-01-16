@@ -103,18 +103,13 @@ metadata {
 			}
         }
         
-        standardTile("hold", "device.hold", width:2, height:2) {
-            state "off", label:'Hold1', icon:"st.Weather.weather2", backgroundColor:"#FFFFFF", action:"holdOn", defaultState:true
-            state "on", label:'Hold2', icon:"st.Weather.weather2", backgroundColor:"#A4FCA6", action:"holdOff"
-        }
-        
         valueTile("demand", "device.demand", width:2, height:2) {
             state "demand", label: '${currentValue}% demand'
         }
 
         standardTile("outputState", "device.outputState", width:2, height:2) {
             state "default", label:'OutputState: ${currentValue}', icon:"st.thermostat.heating-cooling-off", backgroundColor:"#FFFFFF", defaultState:true
-            state "On", label:'OutputState: ${currentValue}', icon:"st.thermostat.heat", backgroundColor:"#FFCC99"
+            state "On", label:'Output: ${currentValue}', icon:"st.thermostat.heat", backgroundColor:"#FFCC99"
         }
         
         standardTile("overrideType", "device.overrideType", width:2, height:2) {
@@ -123,8 +118,8 @@ metadata {
         }
 
         standardTile("modeAuto", "device.thermostatMode", width:2, height:2) {
-            state "default", label:'', icon:"st.thermostat.auto", backgroundColor:"#FFFFFF", action:"thermostat.auto", defaultState:true
-            state "auto", label:'', icon:"st.thermostat.auto", backgroundColor:"#99FF99", action:"thermostat.off"
+            state "default", label:'${currentValue}', icon:"st.thermostat.auto", backgroundColor:"#FFFFFF", action:"thermostat.auto", defaultState:true
+            state "auto", label:'${currentValue}', icon:"st.thermostat.auto", backgroundColor:"#99FF99", action:"thermostat.off"
         }
 
         standardTile("refresh", "device.connection", width:2, height:2, decoration:"flat") {
@@ -157,8 +152,8 @@ metadata {
         main("temperature")
         details([
             "thermostat",
-            "outputState", "modeAuto", "overrideType",
-            "fanMode",  "demand", "refresh"
+            "outputState", "modeAuto", "demand",
+            "refresh", "overrideType"
         ])
     }
 
