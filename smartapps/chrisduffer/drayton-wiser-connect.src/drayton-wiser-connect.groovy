@@ -148,6 +148,14 @@ def logResponse(response) {
 	//log.info("Body: ${response.data}")
 }
 
+def getHeaders() {
+	def headers = [:] 
+    headers.put("HOST", "${ipAddress}:80")
+    headers.put("Secret", "${secret}")
+    
+    return headers
+}
+
 def childPollingTask(deviceId){
 	log.info("childPollingTask ${deviceId}")
     childRefresh(deviceId)
@@ -160,25 +168,15 @@ def childRefresh(deviceId){
     //log.info("${idString}")
     log.info("idString ${idString[0]}  ${idString[1]}")
     
-    def ip = "${ipAddress}:80"
-	def deviceNetworkId = createDNI(ipAddress,80)
-    
-    def headers = [:] 
-    headers.put("HOST", "${ipAddress}:80")
-    headers.put("Secret", "${secret}")
-    
-    log.debug ("headers ${headers}")
-    
-    def pathUrl = "/data/domain/Room/${idString[1]}"
-    
-    def setDirection = new physicalgraph.device.HubAction(
+    def refreshRequest = new physicalgraph.device.HubAction(
         method: "GET",
-        path: pathUrl,
-        headers: headers)
+        path: "/data/domain/Room/${idString[1]}",
+        headers: getHeaders()
+        )
 
-	log.debug "sending cmd"
-    sendHubCommand(setDirection)
-   
+	log.debug " ${refreshRequest}"
+	log.debug "sending childRefresh"
+    sendHubCommand(refreshRequest)
 }
 
 
@@ -192,28 +190,17 @@ def childCancelOverride(deviceId){
     //log.info("${idString}")
     log.info("idString ${idString[0]}  ${idString[1]}")
     
-    def ip = "${ipAddress}:80"
-	def deviceNetworkId = createDNI(ipAddress,80)
-    
-    def headers = [:] 
-    headers.put("HOST", "${ipAddress}:80")
-    headers.put("Secret", "${secret}")
-    
-    log.debug ("headers ${headers}")
-    
-    def pathUrl = "/data/domain/Room/${idString[1]}"
-    
-    def setDirection = new physicalgraph.device.HubAction(
+    def cancelRequest = new physicalgraph.device.HubAction(
         method: "PATCH",
-        path: pathUrl,
-        headers: headers,
+        path: "/data/domain/Room/${idString[1]}",
+        headers: getHeaders(),
         body: data
         )
 
-	log.debug "sending childCancelOverride cmd"
+	log.debug "sending childCancelOverride"
     
-    log.debug " ${setDirection}"
-    sendHubCommand(setDirection) 
+    log.debug " ${cancelRequest}"
+    sendHubCommand(cancelRequest) 
 }
 
 def childSetOverride(deviceId, temp){
@@ -226,28 +213,17 @@ def childSetOverride(deviceId, temp){
     //log.info("${idString}")
     log.info("idString ${idString[0]}  ${idString[1]}")
     
-    def ip = "${ipAddress}:80"
-	def deviceNetworkId = createDNI(ipAddress,80)
-    
-    def headers = [:] 
-    headers.put("HOST", "${ipAddress}:80")
-    headers.put("Secret", "${secret}")
-    
-    log.debug ("headers ${headers}")
-    
-    def pathUrl = "/data/domain/Room/${idString[1]}"
-    
-    def setDirection = new physicalgraph.device.HubAction(
+    def overrideRequest = new physicalgraph.device.HubAction(
         method: "PATCH",
-        path: pathUrl,
-        headers: headers,
+        path: "/data/domain/Room/${idString[1]}",
+        headers: getHeaders(),
         body: data
         )
 
 	log.debug "sending childSetOverride cmd"
     
-    log.debug " ${setDirection}"
-    sendHubCommand(setDirection) 
+    log.debug " ${overrideRequest}"
+    sendHubCommand(overrideRequest) 
 
 }
 
