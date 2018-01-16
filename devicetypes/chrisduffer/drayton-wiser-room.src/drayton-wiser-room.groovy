@@ -606,8 +606,13 @@ def cancelOverride() {
 
 def setOverride(temp){
 	log.debug "setOverride()"
-    log.debug "parent.childSetOverride(${device.deviceNetworkId} ${temp}"
-    parent.childSetOverride(device.deviceNetworkId, (temp * 10).round())
+	runIn(5, delayedSetOverride, [data: [temp: temp]])
+}
+
+def delayedSetOverride(data){
+	log.debug "delayedSetOverride()"
+    log.debug "parent.childSetOverride(${device.deviceNetworkId} ${data.temp}"
+    parent.childSetOverride(device.deviceNetworkId, (data.temp * 10).round())
 }
 
 
