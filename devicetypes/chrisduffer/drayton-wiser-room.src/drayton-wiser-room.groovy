@@ -51,11 +51,14 @@ metadata {
         attribute "outputState", "string"
         // overide
         attribute "overrideType", "string"
+        // System Override
+        attribute "systemOverride", "string"
 
         // Custom commands
         command "temperatureUp"
         command "temperatureDown"
         command "cancelOverride"
+        command "setAway"
     }
 
     tiles(scale:2) {
@@ -108,18 +111,26 @@ metadata {
         }
 
         standardTile("outputState", "device.outputState", width:2, height:2) {
-            state "default", label:'OutputState: ${currentValue}', icon:"st.thermostat.heating-cooling-off", backgroundColor:"#FFFFFF", defaultState:true
-            state "On", label:'Output: ${currentValue}', icon:"st.thermostat.heat", backgroundColor:"#FFCC99"
+            state "default", label:'${currentValue}', icon:"st.thermostat.heating-cooling-off", backgroundColor:"#FFFFFF", defaultState:true
+            state "On", label:'${currentValue}', icon:"st.thermostat.heat", backgroundColor:"#FFCC99"
         }
         
         standardTile("overrideType", "device.overrideType", width:2, height:2) {
-            state "default", label:'OverrideType: ${currentValue}', backgroundColor:"#FFFFFF", defaultState:true
-            state "Manual", label:'OverrideType: ${currentValue}', backgroundColor:"#99FF99", action:"cancelOverride"
+            state "None", label:'OverrideType: ${currentValue}', backgroundColor:"#FFFFFF"
+            state "default", label:'Cancel ${currentValue} override', backgroundColor:"#99FF99", action:"cancelOverride", defaultState:true
         }
 
         standardTile("modeAuto", "device.thermostatMode", width:2, height:2) {
             state "default", label:'${currentValue}', icon:"st.thermostat.auto", backgroundColor:"#FFFFFF", action:"thermostat.auto", defaultState:true
             state "auto", label:'${currentValue}', icon:"st.thermostat.auto", backgroundColor:"#99FF99", action:"thermostat.off"
+        }
+        
+        standardTile("mode", "device.thermostatMode", width:2, height:2) {
+            state "default", label:'mode: ${currentValue}'
+        }
+        
+        standardTile("systemOverride", "device.systemOverride", width:2, height:2) {
+        	state "default", label:'mode: ${currentValue}', action:"setAway", defaultState:true
         }
 
         standardTile("refresh", "device.connection", width:2, height:2, decoration:"flat") {
@@ -152,8 +163,8 @@ metadata {
         main("temperature")
         details([
             "thermostat",
-            "outputState", "modeAuto", "demand",
-            "refresh", "overrideType"
+            "outputState", "mode", "demand",
+            "refresh", "overrideType", "systemOverride"
         ])
     }
 
@@ -610,6 +621,11 @@ def delayedSetOverride(data){
     parent.childSetOverride(device.deviceNetworkId, (data.temp * 10).round())
 }
 
+def setAway() {
+	log.debug "TODO: setAway()"
+    return null
+}
+
 
 // polling.poll 
 def poll() {
@@ -622,6 +638,7 @@ def refresh() {
     log.debug "refresh()"
     log.debug "parent.childRefresh(${device.deviceNetworkId})"
     parent.childRefresh(device.deviceNetworkId)
+    parent.systemRefresh()
     return null
     //STATE()
     
@@ -768,6 +785,29 @@ private parseHttpHeaders(String headers) {
     return result
 }
 
+public def parseSystemData(Map sysData) {
+	log.trace "TODO parseSystemData"
+    log.trace "parseSystemData ${sysData}"
+    
+    def events = []
+    def overrideType = "Home"
+    if (sysData.containsKey("OverrideType")) {
+        overrideType = sysData.OverrideType
+    }
+   
+    events << createEvent([
+            name:   "systemOverride",
+            value:  overrideType
+        ])
+    
+    log.debug "sys events: ${events}"
+    events.each { event ->
+        log.debug "sys event ${event}"
+        sendEvent(event)
+    }
+
+}
+
 public def parseTstatData(Map tstat) {
 	log.trace "tstat"
     log.trace "tstat data: ${tstat}"
@@ -865,8 +905,6 @@ public def parseTstatData(Map tstat) {
         ])
     }
     
-    
-    
      if (tstat.containsKey("hold")) {
         events << createEvent([
             name:   "hold",
@@ -888,7 +926,7 @@ public def parseTstatData(Map tstat) {
         log.debug "event ${event}"
         sendEvent(event)
     }
-    }
+}
 
 private def parseThermostatState(val) {
 	log.debug "parseThermostatState ${val}"
