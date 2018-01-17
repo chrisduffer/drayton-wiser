@@ -59,6 +59,7 @@ metadata {
         command "temperatureDown"
         command "cancelOverride"
         command "setAway"
+        command "setHome"
     }
 
     tiles(scale:2) {
@@ -130,7 +131,9 @@ metadata {
         }
         
         standardTile("systemOverride", "device.systemOverride", width:2, height:2) {
-        	state "default", label:'mode: ${currentValue}', action:"setAway", defaultState:true
+        	state "Home", label:'Mode: ${currentValue}', backgroundColor:"#99FF99", action:"setAway"
+            state "Away", label:'Mode: ${currentValue}', backgroundColor:"#FFCC99", action:"setHome"
+            state "default", label:'Mode: ${currentValue}', backgroundColor:"#FFFFFF", defaultState:true
         }
 
         standardTile("refresh", "device.connection", width:2, height:2, decoration:"flat") {
@@ -622,8 +625,17 @@ def delayedSetOverride(data){
 }
 
 def setAway() {
-	log.debug "TODO: setAway()"
-    return null
+	log.debug "setAway()"
+    parent.setAway()
+    
+    runIn(5,refresh)
+}
+
+def setHome() {
+	log.debug "setHome()"
+    parent.setHome()
+    
+    runIn(5,refresh)
 }
 
 
