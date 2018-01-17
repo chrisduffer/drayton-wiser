@@ -39,6 +39,7 @@ def firstPage() {
             input("secret", "string", title: "Hub Secret", required: true)
             input("maxRooms", "number", title: "Rooms to add (e.g. 4)", required: true)
             input("boostMins", "number", title: "Boost minutes (e.g. 30)", required: true)
+            input("awayTemp", "number", title: "Away Temperature (e.g. 10)", required: true)
         }
     }
 }
@@ -238,7 +239,44 @@ def childSetOverride(deviceId, temp){
     
     log.debug " ${overrideRequest}"
     sendHubCommand(overrideRequest) 
+}
 
+void setAway() {
+	def temp = awayTemp * 10
+    log.info("setAway ${temp}")
+    
+    def data = [type:2,setPoint:temp]
+    
+    def awayRequest = new physicalgraph.device.HubAction(
+        method: "PATCH",
+        path: "/data/domain/System/RequestOverride",
+        headers: getHeaders(),
+        body: data
+        )
+
+	log.debug "sending setAway cmd"
+    
+    log.debug " ${awayRequest}"
+    sendHubCommand(awayRequest)
+}
+
+void setHome() {
+    
+    log.info("setHome")
+    
+    def data = [type:0,setPoint:0]
+    
+    def homeRequest = new physicalgraph.device.HubAction(
+        method: "PATCH",
+        path: "/data/domain/System/RequestOverride",
+        headers: getHeaders(),
+        body: data
+        )
+
+	log.debug "sending setHome cmd"
+    
+    log.debug " ${homeRequest}"
+    sendHubCommand(homeRequest)
 }
 
 void calledBackHandler(physicalgraph.device.HubResponse hubResponse) {
