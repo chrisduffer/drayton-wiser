@@ -40,7 +40,7 @@ metadata {
         // %age demand
         attribute "demand", "number"        
         // Name from json
-        attribute "name", "string"
+        attribute "roomName", "string"
         // output state
         attribute "outputState", "string"
         // overide
@@ -124,7 +124,7 @@ metadata {
             state "default", label:'mode: ${currentValue}'
         }
         
-        standardTile("name", "device.name", width:6, height:2) {
+        standardTile("roomName", "device.roomName", width:6, height:2) {
             state "default", label:'${currentValue}'
         }
         
@@ -166,7 +166,7 @@ metadata {
             "thermostat",
             "outputState", "mode", "demand",
             "refresh", "overrideType", "systemOverride",
-            "name"
+            "roomName"
         ])
     }
 
@@ -905,7 +905,7 @@ public def parseTstatData(Map tstat) {
     
     if (tstat.containsKey("Name")) {
         events << createEvent([
-            name:   "Name",
+            name:   "roomName",
             value:  parseThermostatControlOutputState(tstat.Name)
         ])
     }
