@@ -135,10 +135,28 @@ def addRooms() {
     }
 }
 
+def addHomeAway() {
+	log.debug "Add away mode switch"
+    def device = "${app.id}:AA"
+    def childDevice = getChildDevice("${device}")
+    
+    if (!childDevice){
+        log.debug "Adding away mode ${device}"
+
+        childDevice = addChildDevice(app.namespace, "Drayton Wiser Away", "$device", null, [
+            "label": "Drayton Away Mode",
+            "pollingInterval": 1,
+        ])
+        log.debug "Added away mode ${device}"
+    }
+}
+
 def initialize() {
 	log.debug "initialize ${maxRooms}"
     
-     addRooms()
+    addRooms()
+     
+    addHomeAway()
      
    
 	// TODO: subscribe to attributes, devices, locations, etc.
@@ -244,6 +262,13 @@ def childSetOverride(deviceId, temp){
 void setAway() {
 	def temp = awayTemp * 10
     log.info("setAway ${temp}")
+    
+    log.info("cancel room overrides")
+    (1..maxRooms).each {
+     	log.info("setAway room ${it}")
+        def device = "${app.id}:${it}"
+        childCancelOverride(device)
+    }
     
     def data = [type:2,setPoint:temp]
     
