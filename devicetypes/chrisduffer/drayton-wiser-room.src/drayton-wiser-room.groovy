@@ -20,9 +20,6 @@ preferences {
     input("confSecret", "string", title:"Thermostat Secret",
         required:false, displayDuringSetup:true)
         */
-       
-    input("confRoom", "number", title:"Room ID",
-        required:true, displayDuringSetup:true)
 
     input("pollingInterval", "number", title:"Polling interval in minutes (1 - 59)",
         required:true, displayDuringSetup:true,  defaultValue:1)
@@ -43,7 +40,7 @@ metadata {
         // %age demand
         attribute "demand", "number"        
         // Name from json
-        attribute "name", "string"
+        attribute "roomName", "string"
         // output state
         attribute "outputState", "string"
         // overide
@@ -127,6 +124,10 @@ metadata {
             state "default", label:'mode: ${currentValue}'
         }
         
+        standardTile("roomName", "device.roomName", width:6, height:2) {
+            state "default", label:'${currentValue}'
+        }
+        
         standardTile("systemOverride", "device.systemOverride", width:2, height:2) {
         	state "Home", label:'Mode: ${currentValue}', backgroundColor:"#99FF99", action:"setAway"
             state "Away", label:'Mode: ${currentValue}', backgroundColor:"#FFCC99", action:"setHome"
@@ -164,7 +165,8 @@ metadata {
         details([
             "thermostat",
             "outputState", "mode", "demand",
-            "refresh", "overrideType", "systemOverride"
+            "refresh", "overrideType", "systemOverride",
+            "roomName"
         ])
     }
 
@@ -898,6 +900,13 @@ public def parseTstatData(Map tstat) {
         events << createEvent([
             name:   "outputState",
             value:  parseThermostatControlOutputState(tstat.ControlOutputState)
+        ])
+    }
+    
+    if (tstat.containsKey("Name")) {
+        events << createEvent([
+            name:   "roomName",
+            value:  parseThermostatControlOutputState(tstat.Name)
         ])
     }
     
