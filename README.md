@@ -67,7 +67,7 @@ Connection to the Drayton hub is done through a local LAN connection rather than
 1. Wait for it to update.
 1. The room name from Wiser will be displayed at the bottom. If this displays "0" check the "Recently" tab.
 1. Set the name in the device settings to whatever you want.
-1. There's a bug in the Android app where you'll need to set the polling interval to something other than 1, then save, then go back and set it to 1 (or whatever you want)
+1. There's a bug in the Android app where you need to set each field to something other than whats displayed. Set the polling interval to something other than 1, then save, then go back and set it to 1 (or whatever you want).
 
 ## Room Device Type Instructions
 
@@ -78,10 +78,18 @@ In the center is the current temperature.
 On the right is the set point. If the heating is off in this room this will be blank.
 The arrows override the scheduled temperate up or down by 0.5
 
-### Buttons 
+### Icons
 
-Right Now | Recently | SmartApps
-----------|----------|----------
-          |          | Temperature up
-          | Current Temperature | Set Point (blank if off)
-          |          | Temperature down
+Current heating state (on or off)
+Current mode
+Demand %
+Refresh - tap to refresh
+Override Type - If the scheduled temperature is overridden, tapping this will cancel that
+Mode - Tap to switch THE WHOLE SYSTEM between home and away mode
+
+## Away Mode Type Instructions
+
+The device is to allow you to trigger away mode from other automations.
+For example:
+Add "Turn ON Drayton Away Mode" to the "Goodbye" routine. 
+Add "Turn OFF Drayton Away Mode" to the "I'm Back" routine. 
