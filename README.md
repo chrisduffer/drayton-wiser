@@ -80,16 +80,16 @@ The arrows override the scheduled temperate up or down by 0.5
 
 ### Icons
 
-Current heating state (on or off)
-Current mode
-Demand %
-Refresh - tap to refresh
-Override Type - If the scheduled temperature is overridden, tapping this will cancel that
-Mode - Tap to switch THE WHOLE SYSTEM between home and away mode
+# Current heating state (on or off)
+# Current mode
+# Demand %
+# Refresh - tap to refresh
+# Override Type - If the scheduled temperature is overridden, tapping this will cancel that
+# Mode - Tap to switch THE WHOLE SYSTEM between home and away mode
 
 ## Away Mode Type Instructions
 
 The device is to allow you to trigger away mode from other automations.
 For example:
-Add "Turn ON Drayton Away Mode" to the "Goodbye" routine. 
-Add "Turn OFF Drayton Away Mode" to the "I'm Back" routine. 
+# Add "Turn ON Drayton Away Mode" to the "Goodbye" routine. 
+# Add "Turn OFF Drayton Away Mode" to the "I'm Back" routine. 
