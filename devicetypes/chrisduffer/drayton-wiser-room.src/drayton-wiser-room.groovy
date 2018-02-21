@@ -8,9 +8,6 @@ import groovy.json.JsonSlurper
 
 preferences {
 /*
-   
-   input("confIpAddr", "string", title:"Thermostat IP Address",
-        required:false, displayDuringSetup:true)
 
     // FIXME: Android client does not accept "defaultValue" attribute!
     //input("confTcpPort", "number", title:"Thermostat TCP Port",
@@ -103,7 +100,7 @@ metadata {
 			}
             
 			tileAttribute("device.heatingSetpoint", key:"HEATING_SETPOINT") {
-				attributeState("heatingSetpoint", label:"${ currentValue}", unit:"dC", defaultState:true)
+				attributeState("heatingSetpoint", label:"${currentValue}", unit:"dC", defaultState:true)
 			}
         }
         
@@ -702,7 +699,7 @@ private getPollingInterval() {
 }
 
 private startPollingTask() {
-    //log.debug "startPollingTask()"
+    log.debug "startPollingTask()"
 
     pollingTask()
 
@@ -710,7 +707,7 @@ private startPollingTask() {
     def seconds = rand.nextInt(60)
     def sched = "${seconds} 0/${getPollingInterval()} * * * ?"
 
-    //log.debug "Scheduling polling task with \"${sched}\""
+    log.debug "Scheduling polling task with \"${sched}\""
     schedule(sched, pollingTask)
 }
 
@@ -905,15 +902,19 @@ public def parseTstatData(Map tstat) {
     }
     
     if (tstat.containsKey("OverrideType")) {
+    	def tstatOverride = tstat.OverrideType
+    	if (tstat.OverrideType == ""){
+        	tstatOverride = "None"
+        }
         events << createEvent([
             name:   "overrideType",
-            value:  parseThermostatOverrideType(tstat.OverrideType)
+            value:  parseThermostatOverrideType(tstatOverride)
         ])
     }
     else {
     	events << createEvent([
             name:   "overrideType",
-            value:  ""
+            value:  "None"
         ])
     }
     
@@ -1002,12 +1003,12 @@ private def scaleTemperature(Double temp) {
 	log.debug "scaleTemperature: ${temp}"
     temp = temp / 10
     
-    /*
+    
     if (temp < -19 ) {
     	log.debug "setting off"
-    	return 'off'
+    	return ''
         }
-        */
+        
         
     if (getTemperatureScale() == "F") {
         return temperatureCtoF(temp)
